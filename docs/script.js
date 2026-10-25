@@ -5,7 +5,7 @@ const API_URL = "http://localhost:5000/api";
 
 // true  = показувати тестові дані (корисно, поки бекенд ще не готовий)
 // false = брати дані з реального API
-const USE_DEMO_DATA = false;
+const USE_DEMO_DATA = true;
 // ===================================================
 
 const CATEGORY_LABELS = { waterfall: "Водоспад", viewpoint: "Оглядовий майданчик", meadow: "Полонина" };
