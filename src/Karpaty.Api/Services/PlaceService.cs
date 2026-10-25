@@ -1,4 +1,6 @@
-﻿using Karpaty.Api.DBCommunication.Reposetories.Interfaces;
+﻿using AutoMapper;
+using Karpaty.Api.DBCommunication.Reposetories;
+using Karpaty.Api.DBCommunication.Reposetories.Interfaces;
 using Karpaty.Api.DTOs.Place;
 using Karpaty.Api.Models;
 using Karpaty.Api.Services.Interfaces;
@@ -8,10 +10,12 @@ namespace Karpaty.Api.Services
     public class PlaceService : IPlaceService
     {
         private readonly IPlaceReposetory _placeRepository;
+        private readonly IMapper _mapper;
 
-        public PlaceService(IPlaceReposetory placeRepository)
+        public PlaceService(IPlaceReposetory placeRepository, IMapper mapper)
         {
             _placeRepository = placeRepository;
+            _mapper = mapper;
         }
 
         public async Task<IEnumerable<Place>> GetAllPlacesAsync()
@@ -26,17 +30,7 @@ namespace Karpaty.Api.Services
 
         public async Task<Place> CreatePlaceAsync(CreatePlaceDTO dto)
         {
-            var newPlace = new Place
-            {
-                name = dto.name,
-                category = dto.category,
-                region = dto.region,
-                description = dto.description,
-                difficulty = dto.difficulty,
-                latitude = dto.latitude,
-                longitude = dto.longitude,
-                imageUrl = dto.imageUrl
-            };
+            var newPlace = _mapper.Map<Place>(dto);
 
             await _placeRepository.CreateAsync(newPlace);
 
@@ -69,3 +63,4 @@ namespace Karpaty.Api.Services
         }
     }
 }
+
