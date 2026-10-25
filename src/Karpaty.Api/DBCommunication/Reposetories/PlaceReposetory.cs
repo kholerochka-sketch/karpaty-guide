@@ -6,12 +6,12 @@ using MongoDB.Driver;
 
 namespace Karpaty.Api.DBCommunication.Reposetories
 {
-    public class PlaceRepository : IPlaceReposetory
+    public class PlaceReposetory : IPlaceReposetory
     {
         private readonly IMongoCollection<PlaceDocument> _collection;
         private readonly IMapper _mapper;
 
-        public PlaceRepository(IMongoDatabase database, IMapper mapper)
+        public PlaceReposetory(IMongoDatabase database, IMapper mapper)
         {
             _collection = database.GetCollection<PlaceDocument>("places");
             _mapper = mapper;
