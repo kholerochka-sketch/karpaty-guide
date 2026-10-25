@@ -1,59 +1,62 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Karpaty.Api.DTOs;
+using Karpaty.Api.DTOs.Place;
 using Karpaty.Api.Models;
 using Karpaty.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+
 namespace Karpaty.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class PlaceController : ControllerBase
     {
-        private readonly IPlaceService _eventService;
+        private readonly IPlaceService _placeService;
 
-        public PlaceController(IEventService eventService)
+        public PlaceController(IPlaceService placeService)
         {
-            _eventService = eventService;
+            _placeService = placeService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Place>>> GetAll()
         {
-            var events = await _eventService.GetAllEventsAsync();
-            return Ok(events);
+            var places = await _placeService.GetAllPlacesAsync();
+            return Ok(places);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Place>> GetById(string id)
         {
-            var eventItem = await _eventService.GetEventByIdAsync(id);
+            var place = await _placeService.GetPlaceByIdAsync(id);
 
-            if (eventItem == null)
-                return NotFound($"Подію з ID={id} не знайдено.");
+            if (place == null)
+                return NotFound($"Місце з ID={id} не знайдено.");
 
-            return Ok(eventItem);
+            return Ok(place);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Place>> Create([FromBody] CreateEventDTO dto)
+        public async Task<ActionResult<Place>> Create([FromBody] CreatePlaceDTO dto)
         {
             try
             {
-                var createdEvent = await _eventService.CreateEventAsync(dto);
+                var createdPlace = await _placeService.CreatePlaceAsync(dto);
 
-                return CreatedAtAction(nameof(GetById), new { id = createdEvent.Id }, createdEvent);
+                return CreatedAtAction(nameof(GetById), new { id = createdPlace.id }, createdPlace);
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> Patch(string id, [FromBody] UpdateEventDTO patchDto)
+        public async Task<IActionResult> Patch(string id, [FromBody] UpdatePlaceDTO patchDto)
         {
-            var updatedEvent = await _eventService.UpdateEventAsync(id, patchDto);
+            var updatedPlace = await _placeService.UpdatePlaceAsync(id, patchDto);
 
-            if (updatedEvent == null)
-                return NotFound($"Подію з ID={id} не знайдено.");
+            if (updatedPlace == null)
+                return NotFound($"Місце з ID={id} не знайдено.");
 
             return NoContent();
         }
@@ -61,10 +64,10 @@ namespace Karpaty.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            var isDeleted = await _eventService.DeleteEventAsync(id);
+            var isDeleted = await _placeService.DeletePlaceAsync(id);
 
             if (!isDeleted)
-                return NotFound($"Подію з ID={id} не знайдено.");
+                return NotFound($"Місце з ID={id} не знайдено.");
 
             return NoContent();
         }
