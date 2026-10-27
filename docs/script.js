@@ -1,16 +1,30 @@
 // ================== НАЛАШТУВАННЯ ==================
 // Адреса вашого API. Порт дивіться в консолі після "dotnet run"
 // (рядок "Now listening on: http://localhost:5xxx"). Закінчується на /api, без слеша в кінці.
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://localhost:5078/api";
 
 // true  = показувати тестові дані (корисно, поки бекенд ще не готовий)
 // false = брати дані з реального API
 const USE_DEMO_DATA = false;
 // ===================================================
 
-const CATEGORY_LABELS = { waterfall: "Водоспад", viewpoint: "Оглядовий майданчик", meadow: "Полонина" };
-const CATEGORY_ICONS = { waterfall: "💧", viewpoint: "🔭", meadow: "🌿" };
-const DIFFICULTY_LABELS = { easy: "легкий маршрут", medium: "середній маршрут", hard: "складний маршрут" };
+const CATEGORY_LABELS = {
+    "Водоспад": "Водоспад",
+    "Оглядовий_Майданчик": "Оглядовий майданчик",
+    "Полонина": "Полонина"
+};
+
+const CATEGORY_ICONS = {
+    "Водоспад": "💧",
+    "Оглядовий_Майданчик": "🔭",
+    "Полонина": "🌿"
+};
+
+const DIFFICULTY_LABELS = {
+    "Легко": "легкий маршрут",
+    "Середнє": "середній маршрут",
+    "Тяжко": "складний маршрут"
+};
 
 // Тестові дані (вигадані, лише для верстки)
 const DEMO_PLACES = [

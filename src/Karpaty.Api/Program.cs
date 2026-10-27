@@ -5,10 +5,11 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Налаштування MongoDB (з обмеженням часу очікування, щоб при падінні БД швидше спрацьовував 500)
+// 1. Налаштування MongoDB
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
-    var connectionString = builder.Configuration["MongoDb:ConnectionString"] ?? "mongodb://localhost:27017";
+    var connectionString = builder.Configuration["MongoDbSettings:ConnectionString"]
+        ?? "mongodb://localhost:27017";
     var settings = MongoClientSettings.FromConnectionString(connectionString);
     settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
     return new MongoClient(settings);
@@ -17,15 +18,20 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 builder.Services.AddScoped<IMongoDatabase>(sp =>
 {
     var client = sp.GetRequiredService<IMongoClient>();
-    var dbName = builder.Configuration["MongoDb:DatabaseName"] ?? "karpaty_db";
+    var dbName = builder.Configuration["MongoDbSettings:DatabaseName"] ?? "Karpatyyy";
     return client.GetDatabase(dbName);
 });
 
-// 2. Реєстрація сервісів Backend 2
+// 2. Реєстрація сервісів та репозиторіїв
+builder.Services.AddScoped<Karpaty.Api.DBCommunication.Reposetories.Interfaces.IPlaceReposetory, Karpaty.Api.DBCommunication.Reposetories.PlaceReposetory>();
+builder.Services.AddScoped<Karpaty.Api.Services.Interfaces.IPlaceService, PlaceService>();
 builder.Services.AddScoped<FeedbackService>();
 builder.Services.AddScoped<TipService>();
 
-// 3. B2-7: Налаштування CORS (дозволено запити з фронтенду)
+// AutoMapper
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+// 3. Налаштування CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -36,27 +42,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4. B2-8 (Бонус): Rate Limiting для захисту POST /api/feedback від спаму
+// 4. Rate Limiter для відгуків
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.OnRejected = async (context, token) =>
-    {
-        context.HttpContext.Response.ContentType = "application/json";
-        await context.HttpContext.Response.WriteAsJsonAsync(new
-        {
-            status = 429,
-            error = "Забагато запитів. Спробуйте пізніше."
-        }, cancellationToken: token);
-    };
-
     options.AddPolicy("FeedbackPolicy", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 3, // Максимум 3 відгуки
-                Window = TimeSpan.FromMinutes(1), // За 1 хвилину
+                PermitLimit = 3,
+                Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
 });
@@ -67,40 +63,21 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 5. B2-6: Глобальна обробка помилок (повертає зрозумілий JSON і статус 500)
-app.UseExceptionHandler(errorApp =>
+// 5. Конвеєр обробки запитів (Порядок має значення!)
+if (app.Environment.IsDevelopment())
 {
-    errorApp.Run(async context =>
-    {
-        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
-        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-        if (exceptionFeature?.Error != null)
-        {
-            logger.LogError(exceptionFeature.Error, "Необроблена помилка під час виконання запиту.");
-        }
-
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/json";
-
-        await context.Response.WriteAsJsonAsync(new
-        {
-            status = 500,
-            error = "Внутрішня помилка сервера. Сервіс або база даних тимчасово недоступні.",
-            timestamp = DateTime.UtcNow
-        });
-    });
-});
-
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseStaticFiles(); //  Дозволяє .NET роздавати твої HTML, CSS, JS із папки wwwroot
 
 app.UseCors("AllowAll");
-
 app.UseRateLimiter();
-
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapFallbackToFile("index.html"); //   Автоматично відкриває сайт, коли заходиш 
 
 app.Run();

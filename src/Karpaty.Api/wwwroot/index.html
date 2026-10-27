@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карпати без натовпу — путівник тихими місцями</title>
+    <meta name="description" content="Онлайн-путівник маловідомими та затишними куточками Карпат.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <a class="logo" href="#top">🏔️ Карпати без натовпу</a>
+        <nav class="nav">
+            <a href="#about">Про проєкт</a>
+            <a href="#places">Місця</a>
+            <a href="#tips">Поради</a>
+            <a href="#feedback">Відгук</a>
+        </nav>
+    </header>
+
+    <main id="top">
+
+        <!-- Головний екран -->
+        <section class="hero">
+            <div class="hero__content">
+                <h1>Відпочинок у горах без натовпу</h1>
+                <p>
+                    Водоспади, оглядові майданчики та полонини, про які мало хто знає.
+                    Тиша, краєвиди і прості поради, щоб похід вдався.
+                </p>
+                <a class="btn" href="#places">Обрати місце</a>
+            </div>
+        </section>
+
+        <!-- Про проєкт -->
+        <section id="about" class="section">
+            <h2>Про проєкт</h2>
+            <div class="features">
+                <article class="feature">
+                    <span class="feature__icon">🌲</span>
+                    <h3>Нерозпіарені місця</h3>
+                    <p>Збираємо куточки Карпат, де можна побути наодинці з природою.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature__icon">🥾</span>
+                    <h3>Прості поради</h3>
+                    <p>Що взяти з собою, як не заблукати і як поводитись у горах.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature__icon">💬</span>
+                    <h3>Ваш відгук</h3>
+                    <p>Розкажіть, що сподобалось, і запропонуйте нові місця.</p>
+                </article>
+            </div>
+        </section>
+
+        <!-- Місця -->
+        <section id="places" class="section section--alt">
+            <h2>Місця</h2>
+            <div class="filters" id="filters">
+                <button class="filter active" data-category="">Усі</button>
+                <button class="filter" data-category="Водоспад">💧 Водоспади</button>
+                <button class="filter" data-category="Оглядовий_Майданчик">🔭 Оглядові майданчики</button>
+                <button class="filter" data-category="Полонина">🌿 Полонини</button>
+            </div>
+            <p id="placesStatus" class="status" role="status"></p>
+            <div id="placesGrid" class="grid"></div>
+        </section>
+
+        <!-- Поради -->
+        <section id="tips" class="section">
+            <h2>Поради для походу</h2>
+            <p id="tipsStatus" class="status" role="status"></p>
+            <div id="tipsList" class="tips"></div>
+        </section>
+
+        <!-- Відгук -->
+        <section id="feedback" class="section section--alt">
+            <h2>Зворотний зв’язок</h2>
+            <form id="feedbackForm" class="form" novalidate>
+                <label for="fbName">Ім’я</label>
+                <input id="fbName" name="name" type="text" maxlength="50" placeholder="Ваше ім’я" required>
+
+                <label for="fbEmail">Email</label>
+                <input id="fbEmail" name="email" type="email" placeholder="you@example.com" required>
+
+                <label for="fbRating">Оцінка</label>
+                <select id="fbRating" name="rating">
+                    <option value="5">5 — чудово</option>
+                    <option value="4">4 — добре</option>
+                    <option value="3">3 — нормально</option>
+                    <option value="2">2 — слабо</option>
+                    <option value="1">1 — погано</option>
+                </select>
+
+                <label for="fbMessage">Повідомлення</label>
+                <textarea id="fbMessage" name="message" rows="5" maxlength="1000"
+                          placeholder="Що сподобалось? Яке місце додати?" required></textarea>
+
+                <button class="btn" type="submit" id="fbSubmit">Надіслати</button>
+                <p id="fbStatus" class="status" role="status"></p>
+            </form>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 «Карпати без натовпу» · Навчальний командний проєкт</p>
+    </footer>
+
+    <!-- Вікно з деталями місця -->
+    <dialog id="placeDialog" class="dialog">
+        <button class="dialog__close" id="dialogClose" aria-label="Закрити">✕</button>
+        <div id="dialogBody"></div>
+    </dialog>
+
+    <script src="script.js"></script>
+</body>
+</html>
