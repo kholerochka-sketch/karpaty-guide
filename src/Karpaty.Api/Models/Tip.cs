@@ -10,6 +10,10 @@ public class Tip
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    // Прив'язка до конкретного місця (Place.id). Якщо null — порада загальна для всіх походів
+    [BsonElement("placeId")]
+    public string? PlaceId { get; set; }
+
     [Required(ErrorMessage = "Заголовок поради є обов'язковим.")]
     [StringLength(100, MinimumLength = 3, ErrorMessage = "Заголовок має містити від 3 до 100 символів.")]
     [BsonElement("title")]

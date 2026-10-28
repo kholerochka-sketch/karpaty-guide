@@ -10,6 +10,10 @@ public class Feedback
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    // Прив'язка до конкретного місця (Place.id)
+    [BsonElement("placeId")]
+    public string? PlaceId { get; set; }
+
     [Required(ErrorMessage = "Ім'я є обов'язковим.")]
     [StringLength(50, MinimumLength = 2, ErrorMessage = "Ім'я повинно містити від 2 до 50 символів.")]
     [BsonElement("name")]

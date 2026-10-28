@@ -1,7 +1,6 @@
-using Karpaty.Api.Models;
-using Karpaty.Api.Services;
+using Karpaty.Api.DTOs.Feedback;
+using Karpaty.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 
 namespace Karpaty.Api.Controllers;
 
@@ -9,25 +8,16 @@ namespace Karpaty.Api.Controllers;
 [Route("api/[controller]")]
 public class FeedbackController : ControllerBase
 {
-    private readonly FeedbackService _feedbackService;
+    private readonly IFeedbackService _feedbackService;
     private readonly IConfiguration _configuration;
 
-    public FeedbackController(FeedbackService feedbackService, IConfiguration configuration)
+    public FeedbackController(IFeedbackService feedbackService, IConfiguration configuration)
     {
         _feedbackService = feedbackService;
         _configuration = configuration;
     }
 
-    // B2-3 та B2-8: Збереження відгуку (201 Created) + обмеження частоти запитів (429 Too Many Requests)
-    [HttpPost]
-    [EnableRateLimiting("FeedbackPolicy")]
-    public async Task<IActionResult> Create([FromBody] Feedback feedback)
-    {
-        var created = await _feedbackService.CreateAsync(feedback);
-        return Created($"/api/feedback/{created.Id}", created);
-    }
-
-    // B2-4: Перегляд усіх відгуків лише з правильним заголовком X-Admin-Key
+    // GET /api/feedback (доступний з X-Admin-Key)
     [HttpGet]
     public async Task<IActionResult> GetAll([FromHeader(Name = "X-Admin-Key")] string? adminKey)
     {
@@ -44,5 +34,54 @@ public class FeedbackController : ControllerBase
 
         var feedbacks = await _feedbackService.GetAllAsync();
         return Ok(feedbacks);
+    }
+
+    // GET /api/feedback/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        var feedback = await _feedbackService.GetByIdAsync(id);
+        if (feedback == null)
+            return NotFound(new { status = 404, error = $"Відгук з ID '{id}' не знайдено." });
+
+        return Ok(feedback);
+    }
+
+    // GET /api/feedback/place/{placeId} — всі відгуки до конкретного місця
+    [HttpGet("place/{placeId}")]
+    public async Task<IActionResult> GetByPlaceId(string placeId)
+    {
+        var feedbacks = await _feedbackService.GetByPlaceIdAsync(placeId);
+        return Ok(feedbacks);
+    }
+
+    // POST /api/feedback
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateFeedbackDTO dto)
+    {
+        var created = await _feedbackService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    // PUT /api/feedback/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateFeedbackDTO dto)
+    {
+        var updated = await _feedbackService.UpdateAsync(id, dto);
+        if (updated == null)
+            return NotFound(new { status = 404, error = $"Відгук з ID '{id}' не знайдено." });
+
+        return Ok(updated);
+    }
+
+    // DELETE /api/feedback/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id)
+    {
+        var deleted = await _feedbackService.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(new { status = 404, error = $"Відгук з ID '{id}' не знайдено." });
+
+        return NoContent();
     }
 }

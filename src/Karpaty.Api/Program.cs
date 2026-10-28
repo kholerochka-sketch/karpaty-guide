@@ -1,37 +1,54 @@
-using System.Threading.RateLimiting;
+using Karpaty.Api;
+using Karpaty.Api.DBCommunication.Reposetories;
+using Karpaty.Api.DBCommunication.Reposetories.Interfaces;
 using Karpaty.Api.Services;
+using Karpaty.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Налаштування MongoDB
-builder.Services.AddSingleton<IMongoClient>(sp =>
+// 1. Єдине налаштування MongoDB (підтримує і MongoDBSettings, і MongoDb)
+builder.Services.Configure<MongoDBSettings>(options =>
 {
-    var connectionString = builder.Configuration["MongoDbSettings:ConnectionString"]
-        ?? "mongodb://localhost:27017";
-    var settings = MongoClientSettings.FromConnectionString(connectionString);
-    settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
-    return new MongoClient(settings);
+    builder.Configuration.GetSection("MongoDBSettings").Bind(options);
+
+    if (string.IsNullOrWhiteSpace(options.ConnectionString))
+        options.ConnectionString = builder.Configuration["MongoDb:ConnectionString"] ?? "mongodb://localhost:27017";
+
+    if (string.IsNullOrWhiteSpace(options.DatabaseName))
+        options.DatabaseName = builder.Configuration["MongoDb:DatabaseName"] ?? "karpaty_db";
 });
 
-builder.Services.AddScoped<IMongoDatabase>(sp =>
-{
-    var client = sp.GetRequiredService<IMongoClient>();
-    var dbName = builder.Configuration["MongoDbSettings:DatabaseName"] ?? "Karpatyyy";
-    return client.GetDatabase(dbName);
-});
-
-// 2. Реєстрація сервісів та репозиторіїв
-builder.Services.AddScoped<Karpaty.Api.DBCommunication.Reposetories.Interfaces.IPlaceReposetory, Karpaty.Api.DBCommunication.Reposetories.PlaceReposetory>();
-builder.Services.AddScoped<Karpaty.Api.Services.Interfaces.IPlaceService, PlaceService>();
-builder.Services.AddScoped<FeedbackService>();
-builder.Services.AddScoped<TipService>();
-
-// AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// 3. Налаштування CORS
+// 2. Реєструємо IMongoClient один раз як Singleton
+builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
+{
+    var settings = serviceProvider.GetRequiredService<IOptions<MongoDBSettings>>().Value;
+    var mongoSettings = MongoClientSettings.FromConnectionString(settings.ConnectionString);
+    mongoSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
+    return new MongoClient(mongoSettings);
+});
+
+// 3. Реєструємо IMongoDatabase через вже створений IMongoClient
+builder.Services.AddSingleton<IMongoDatabase>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>().Value;
+    var client = sp.GetRequiredService<IMongoClient>();
+    return client.GetDatabase(settings.DatabaseName);
+});
+
+// 4. Реєстрація репозиторіїв та сервісів Backend 1 (Places)
+builder.Services.AddSingleton<IPlaceReposetory, PlaceReposetory>();
+builder.Services.AddSingleton<IPlaceService, PlaceService>();
+
+// 5. Реєстрація сервісів Backend 2 (Feedback + Tips) через інтерфейси
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<ITipService, TipService>();
+
+// 6. Налаштування CORS (B2-7)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -42,42 +59,52 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4. Rate Limiter для відгуків
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("FeedbackPolicy", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 3,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
-});
-
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 5. Конвеєр обробки запитів (Порядок має значення!)
+// 7. Глобальна обробка помилок (B2-6: повертає JSON і код 500)
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (exceptionFeature?.Error != null)
+        {
+            logger.LogError(exceptionFeature.Error, "Необроблена помилка під час виконання запиту.");
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status = 500,
+            error = "Внутрішня помилка сервера. Сервіс або база даних тимчасово недоступні.",
+            timestamp = DateTime.UtcNow
+        });
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
 }
 
-app.UseStaticFiles(); //  Дозволяє .NET роздавати твої HTML, CSS, JS із папки wwwroot
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
-app.UseRateLimiter();
+
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.MapFallbackToFile("index.html"); //   Автоматично відкриває сайт, коли заходиш 
 
 app.Run();
